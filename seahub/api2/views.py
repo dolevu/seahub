@@ -340,7 +340,6 @@ class Search(APIView):
                 logger.error(e)
                 pass
 
-
         res = { "total":total, "results":results, "has_more":has_more }
         return Response(res)
 
@@ -2629,17 +2628,18 @@ class DirView(APIView):
         parent_dir = os.path.dirname(path)
 
         if operation.lower() == 'mkdir':
-            if check_folder_permission(request, repo_id, parent_dir) != 'rw':
-                return api_error(status.HTTP_403_FORBIDDEN, 'You do not have permission to access this folder.')
-
+            new_dir_name = os.path.basename(path)
             create_parents = request.POST.get('create_parents', '').lower() in ('true', '1')
             if not create_parents:
                 # check whether parent dir exists
                 if not seafile_api.get_dir_id_by_path(repo_id, parent_dir):
-                    return api_error(status.HTTP_400_BAD_REQUEST,
+                    return api_error(status.HTTP_404_NOT_FOUND,
                                      'Parent dir does not exist')
 
-                new_dir_name = os.path.basename(path)
+                if check_folder_permission(request, repo_id, parent_dir) != 'rw':
+                    return api_error(status.HTTP_403_FORBIDDEN,
+                            'You do not have permission to access this folder.')
+
                 new_dir_name = check_filename_with_rename(repo_id, parent_dir, new_dir_name)
                 try:
                     seafile_api.post_dir(repo_id, parent_dir,
@@ -2652,6 +2652,11 @@ class DirView(APIView):
                 if not is_seafile_pro():
                     return api_error(status.HTTP_400_BAD_REQUEST,
                                      'Feature not supported.')
+
+                if check_folder_permission(request, repo_id, '/') != 'rw':
+                    return api_error(status.HTTP_403_FORBIDDEN,
+                            'You do not have permission to access this folder.')
+
                 try:
                     seafile_api.mkdir_with_parents(repo_id, '/',
                                                    path[1:], username)
