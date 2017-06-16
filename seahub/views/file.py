@@ -205,8 +205,13 @@ def get_file_view_path_and_perm(request, repo_id, obj_id, path, use_onetime=True
         return ('', '', user_perm)
     else:
         # Get a token to visit file
-        token = seafile_api.get_fileserver_access_token(repo_id, obj_id, 'view',
-                                                        username, use_onetime=use_onetime)
+        token = seafile_api.get_fileserver_access_token(repo_id,
+                obj_id, 'view', username, use_onetime=use_onetime)
+
+        if not token:
+            logger.error('FileServer access token %s invalid') % token
+            return ('', '', None)
+
         outer_url = gen_file_get_url(token, filename)
         inner_url = gen_inner_file_get_url(token, filename)
         return (outer_url, inner_url, user_perm)
@@ -282,8 +287,13 @@ def convert_md_link(file_content, repo_id, username):
             if not obj_id:
                 return '''<p class="wiki-page-missing">%s</p>''' %  link_name
 
-            token = seafile_api.get_fileserver_access_token(repo_id, obj_id,
-                                                            'view', username)
+            token = seafile_api.get_fileserver_access_token(repo_id,
+                    obj_id, 'view', username)
+
+            if not token:
+                logger.error('FileServer access token %s invalid') % token
+                return '''<p class="wiki-page-missing">%s</p>''' %  link_name
+
             return '<img class="wiki-image" src="%s" alt="%s" />' % (gen_file_get_url(token, filename), filename)
         else:
             from seahub.base.templatetags.seahub_tags import file_icon_filter
@@ -410,18 +420,26 @@ def _file_view(request, repo_id, path):
     # Pass permission check, start download or render file.
 
     if request.GET.get('dl', '0') == '1':
-        token = seafile_api.get_fileserver_access_token(repo_id, obj_id,
-                                                        'download', username,
-                                                        use_onetime=True)
+        token = seafile_api.get_fileserver_access_token(repo_id,
+                obj_id, 'download', username, use_onetime=True)
+
+        if not token:
+            logger.error('FileServer access token %s invalid') % token
+            return render_permission_error(request, _(u'Unable to view file'))
+
         dl_url = gen_file_get_url(token, u_filename)
         # send stats message
         send_file_access_msg(request, repo, path, 'web')
         return HttpResponseRedirect(dl_url)
 
     if request.GET.get('raw', '0') == '1':
-        token = seafile_api.get_fileserver_access_token(repo_id, obj_id,
-                                                        'view', username,
-                                                        use_onetime=True)
+        token = seafile_api.get_fileserver_access_token(repo_id,
+                obj_id, 'view', username, use_onetime=True)
+
+        if not token:
+            logger.error('FileServer access token %s invalid') % token
+            return render_permission_error(request, _(u'Unable to view file'))
+
         raw_url = gen_file_get_url(token, u_filename)
         # send stats message
         send_file_access_msg(request, repo, path, 'web')
