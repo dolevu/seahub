@@ -298,7 +298,7 @@ class WOPIFilesContentsView(APIView):
                     content_type=json_content_type)
 
         if not fileserver_token:
-            logger.error('FileServer access token %s invalid') % fileserver_token
+            logger.error('FileServer access token %s invalid' % fileserver_token)
             return HttpResponse(json.dumps({}), status=500,
                     content_type=json_content_type)
 
@@ -327,7 +327,7 @@ class WOPIFilesContentsView(APIView):
                     'dummy', 'update', request_user)
 
             if not token:
-                logger.error('FileServer access token %s invalid') % token
+                logger.error('FileServer access token %s invalid' % token)
                 return HttpResponse(json.dumps({}), status=500,
                         content_type=json_content_type)
 

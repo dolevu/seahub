@@ -68,6 +68,7 @@ def get_upload_url(request, repo_id):
     if check_folder_permission(request, repo_id, '/') == 'rw':
         token = seafile_api.get_fileserver_access_token(repo_id,
                 'dummy', 'upload', username)
+
         if not token:
             return ''
 

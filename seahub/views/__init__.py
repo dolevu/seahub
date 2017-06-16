@@ -1002,7 +1002,7 @@ def repo_download_dir(request, repo_id):
                 repo_id, json.dumps(fake_obj_id), 'download-dir', request.user.username)
 
         if not token:
-            logger.error('FileServer access token %s invalid') % token
+            logger.error('FileServer access token %s invalid' % token)
             return render_error(request, _(u'Internal Server Error'))
 
     else:
