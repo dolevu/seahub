@@ -1,5 +1,4 @@
 # Copyright (c) 2012-2016 Seafile Ltd.
-import os
 import logging
 from constance import config
 
@@ -19,10 +18,11 @@ from seahub.api2.authentication import TokenAuthentication
 from seahub.api2.throttling import UserRateThrottle
 from seahub.api2.permissions import CanGenerateUploadLink
 
+from seahub.api2.endpoints.utils import get_upload_link_info
+
 from seahub.share.models import UploadLinkShare
-from seahub.utils import gen_shared_upload_link
 from seahub.views import check_folder_permission
-from seahub.utils.timeutils import datetime_to_isoformat_timestr
+
 
 logger = logging.getLogger(__name__)
 
@@ -31,40 +31,6 @@ class UploadLinks(APIView):
     authentication_classes = (TokenAuthentication, SessionAuthentication)
     permission_classes = (IsAuthenticated, CanGenerateUploadLink)
     throttle_classes = (UserRateThrottle, )
-
-    def _get_upload_link_info(self, uls):
-        data = {}
-        token = uls.token
-
-        repo_id = uls.repo_id
-        try:
-            repo = seafile_api.get_repo(repo_id)
-        except Exception as e:
-            logger.error(e)
-            repo = None
-
-        path = uls.path
-        if path:
-            obj_name = '/' if path == '/' else os.path.basename(path.rstrip('/'))
-        else:
-            obj_name = ''
-
-        if uls.ctime:
-            ctime = datetime_to_isoformat_timestr(uls.ctime)
-        else:
-            ctime = ''
-
-        data['repo_id'] = repo_id
-        data['repo_name'] = repo.repo_name if repo else ''
-        data['path'] = path
-        data['obj_name'] = obj_name
-        data['view_cnt'] = uls.view_cnt
-        data['ctime'] = ctime
-        data['link'] = gen_shared_upload_link(token)
-        data['token'] = token
-        data['username'] = uls.username
-
-        return data
 
     def get(self, request):
         """ Get all upload links of a user.
@@ -108,7 +74,7 @@ class UploadLinks(APIView):
 
         result = []
         for uls in upload_link_shares:
-            link_info = self._get_upload_link_info(uls)
+            link_info = get_upload_link_info(uls)
             result.append(link_info)
 
         if len(result) == 1:
@@ -169,7 +135,7 @@ class UploadLinks(APIView):
             uls = UploadLinkShare.objects.create_upload_link_share(username,
                 repo_id, path, password)
 
-        link_info = self._get_upload_link_info(uls)
+        link_info = get_upload_link_info(uls)
         return Response(link_info)
 
 class UploadLink(APIView):
@@ -191,7 +157,7 @@ class UploadLink(APIView):
             error_msg = 'token %s not found.' % token
             return api_error(status.HTTP_404_NOT_FOUND, error_msg)
 
-        link_info = self._get_upload_link_info(uls)
+        link_info = get_upload_link_info(uls)
         return Response(link_info)
 
     def delete(self, request, token):
